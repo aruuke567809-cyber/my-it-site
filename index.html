@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="ky">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IT терминдер борбору — Категориялар</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg: #f0f2f5; --text: #1c1e21; --accent: #1877f2; --card: #ffffff; }
+        .dark-theme { --bg: #18191a; --text: #e4e6eb; --accent: #2d88ff; --card: #242526; }
+        
+        body { font-family: 'Montserrat', sans-serif; background-color: var(--bg); color: var(--text); margin: 0; transition: 0.3s; }
+        nav { background: var(--card); padding: 15px 10%; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100; }
+        .hero { text-align: center; padding: 50px 20px; background: linear-gradient(135deg, #1877f2, #673ab7); color: white; }
+        
+        /* Издөө талаасынын стили */
+        #searchInput { padding: 12px 25px; width: 80%; max-width: 500px; border-radius: 25px; border: none; margin-top: 20px; outline: none; font-size: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+
+        .category-header { padding: 30px 10% 10px 10%; font-size: 28px; font-weight: bold; color: var(--accent); }
+        .container { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 25px; padding: 10px 10% 40px 10%; }
+        
+        .card { background: var(--card); border-radius: 15px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1); cursor: pointer; transition: 0.3s; display: flex; flex-direction: column; }
+        .card:hover { transform: translateY(-8px); }
+        .card-img { width: 100%; height: 180px; object-fit: cover; }
+        .card-content { padding: 20px; flex-grow: 1; }
+        
+        #modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); justify-content: center; align-items: center; z-index: 1000; padding: 20px; }
+        .modal-content { background: var(--card); padding: 30px; border-radius: 20px; max-width: 700px; width: 100%; max-height: 90vh; overflow-y: auto; position: relative; }
+        
+        .quiz-section { background: var(--bg); padding: 20px; border-radius: 15px; margin-top: 25px; border: 1px dashed var(--accent); }
+        .quiz-option { display: block; width: 100%; padding: 12px; margin: 8px 0; border: 1px solid var(--accent); border-radius: 8px; background: none; color: var(--text); cursor: pointer; text-align: left; }
+        .quiz-option:hover { background: var(--accent); color: white; }
+        .correct { background: #2ecc71 !important; color: white !important; }
+        .wrong { background: #e74c3c !important; color: white !important; }
+        
+        /* Үн баскычынын стили */
+        .speak-btn { background: var(--accent); color: white; border: none; padding: 5px 15px; border-radius: 20px; cursor: pointer; margin-left: 10px; font-size: 14px; }
+        
+        .close-btn { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 10px; cursor: pointer; margin-top: 20px; width: 100%; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<nav>
+    <h2 style="margin:0">IT Learning</h2>
+    <button onclick="document.body.classList.toggle('dark-theme')" style="cursor:pointer; padding:8px 15px; border:none; background:var(--accent); color:white; border-radius:10px;">Түн/Күн</button>
+</nav>
+
+<div class="hero">
+    <h1>IT терминдер энциклопедиясы</h1>
+    <p>Технологияларды тармактар боюнча үйрөнүңүз</p>
+    <input type="text" id="searchInput" placeholder="Термин издөө..." onkeyup="renderCards()">
+</div>
+
+<div class="category-header" id="head-lang">1. Программалоо тилдери (Куралдар)</div>
+<div class="container" id="category-lang"></div>
+
+<div class="category-header" id="head-dev">2. Иштеп чыгуу багыттары (Процесстер)</div>
+<div class="container" id="category-dev"></div>
+
+<div class="category-header" id="head-career">3. Тармак же кесиптик багыт</div>
+<div class="container" id="category-career"></div>
+
+<div id="modal" onclick="closeModal()">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <img id="modalImg" src="" style="width:100%; height:280px; object-fit:cover; border-radius:15px;">
+        <div style="display:flex; align-items:center; margin-top:20px;">
+            <h2 id="modalTitle" style="color:var(--accent); margin:0;"></h2>
+            <button id="speakBtn" class="speak-btn">🔊 Угуу</button>
+        </div>
+        <div id="modalDesc" style="line-height: 1.8; font-size: 16px; margin-top:15px;"></div>
+        
+        <div class="quiz-section">
+            <h4 style="margin-top:0;">🧠 Билимди текшерүү:</h4>
+            <p id="quizQuestion"></p>
+            <div id="quizOptions"></div>
+            <p id="quizFeedback" style="font-weight:bold; margin-top:10px;"></p>
+        </div>
+        <button class="close-btn" onclick="closeModal()">Жабуу</button>
+    </div>
+</div>
+
+<script>
+    const terms = [
+        { 
+            cat: "lang", name: "Python", 
+            image: "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=600",
+            desc: "Үйрөнүүгө оңой жана универсалдуу тил.",
+            detail: "<strong>Python</strong> — бул бүгүнкү күндө эң популярдуу программалоо тилдеринин бири. Анын синтаксиси жөнөкөй жана адамдын тилине абдан жакын болгондуктан, жаңы баштагандар үчүн эң мыкты тандоо.<br><br><strong>Кайсы жерде колдонулат?</strong><br>• Жасалма интеллект жана маалымат таануу (Data Science).<br>• Веб-сайттардын сервердик бөлүгү (Backend).<br>• Автоматташтыруу жана скрипт жазуу.",
+            quiz: { q: "Python кайсы тармакта эң көп колдонулат?", options: ["AI / Data Science", "Дизайн", "Маркетинг"], answer: "AI / Data Science" }
+        },
+        { 
+            cat: "lang", name: "JavaScript", 
+            image: "https://images.unsplash.com/photo-1579468118864-1b9ea3c0db4a?w=600",
+            desc: "Интерактивдүү веб-сайттардын тили.",
+            detail: "<strong>JavaScript</strong> — бул веб-сайттарды тирүү жана интерактивдүү кылган тил. Эгер HTML сайттын скелети болсо, JavaScript анын кыймыл-аракети болуп саналат.<br><br><strong>Мүмкүнчүлүктөрү:</strong><br>• Баскычтарды басканда маалыматтарды жүктөө.<br>• Анимацияларды жана галереяларды иштетүү.<br>• Node.js аркылуу сервердик бөлүктү да жазууга болот.",
+            quiz: { q: "Браузерде иштеген негизги тил кайсы?", options: ["Java", "JS", "C#"], answer: "JS" }
+        },
+        { 
+            cat: "lang", name: "C++", 
+            image: "https://images.unsplash.com/photo-1605379399642-870262d3d051?w=600",
+            desc: "Жогорку өндүрүмдүүлүктөгү тил.",
+            detail: "<strong>C++</strong> — бул компьютердин ресурстарын өтө кылдат башкарууга мүмкүндүк берген кубаттуу тил. <br><br><strong>Кайда колдонулат?</strong><br>• Чоң видео оюндарда (мисалы, Unreal Engine).<br>• Операциялык системаларда (Windows, macOS).<br>• Браузерлерде жана жогорку ылдамдыкты талап кылган программаларда.",
+            quiz: { q: "C++ көбүнчө эмне үчүн колдонулат?", options: ["Оюндар", "Сүрөт иштетүү", "Excel"], answer: "Оюндар" }
+        },
+        { 
+            cat: "dev", name: "Frontend", 
+            image: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=600",
+            desc: "Колдонуучу көрө турган интерфейс.",
+            detail: "<strong>Frontend</strong> — бул веб-сайттын браузерде ачылган жана колдонуучу түздөн-түз өз көзү менен көрүп, иштеше турган бөлүгү. Ал сайттын дизайны, визуалдык түзүмү жана интерактивдүүлүгү үчүн жооп берет.<br><br><strong>Негизги багыттары:</strong><br>• <em>HTML</em> — сайттын мазмунун аныктайт.<br>• <em>CSS</em> — сайттын кооздугун камсыз кылат.<br>• <em>JavaScript</em> — сайтты жандуу кылат.",
+            quiz: { q: "Frontend'де сайттын скелетин кайсы тил түзөт?", options: ["HTML", "CSS", "Python"], answer: "HTML" }
+        },
+        { 
+            cat: "dev", name: "Backend", 
+            image: "https://images.unsplash.com/photo-1562813733-b31f71025d54?w=600",
+            desc: "Сервердик логика жана база.",
+            detail: "<strong>Backend</strong> — бул веб-сайттын 'көрүнбөгөн' мээси. Ал серверде жайгашып, бардык маалыматтарды иштеп чыгуу, сактоо жана коопсуздукту камсыз кылуу милдетин аткарат.<br><br><strong>Кандай иштерди аткарат?</strong><br>• Колдонуучунун каттоосун башкарат.<br>• Маалымат базалары (SQL, MongoDB) менен иштешет.<br>• Татаал алгоритмдерди ишке ашырат.",
+            quiz: { q: "Backend маалыматты кайда сактайт?", options: ["Браузерде", "Маалымат базасында", "Сүрөттө"], answer: "Маалымат базасында" }
+        },
+        { 
+            cat: "career", name: "Cybersecurity", 
+            image: "https://images.unsplash.com/photo-1563986768609-322da13575f3?w=600",
+            desc: "Маалыматтарды коргоо.",
+            detail: "<strong>Киберкоопсуздук</strong> — бул компьютердик системаларды, тармактарды жана маанилүү маалыматтарды санариптик чабуулдардан же уурдоодон коргоо илими.<br><br><strong>Негизги ыкмалары:</strong><br>• <em>Шифрлөө</em> — маалыматты коддоо.<br>• <em>Файрволдор</em> — тармакты көзөмөлдөө.<br>• <em>Аутентификация</em> — колдонуучунун ким экенин тактоо.",
+            quiz: { q: "Маалыматтарды коргоонун негизги ыкмасы?", options: ["Шифрлөө", "Өчүрүү", "Көчүрүү"], answer: "Шифрлөө" }
+        },
+        { 
+            cat: "career", name: "Artificial Intelligence (AI)", 
+            image: "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=600",
+            desc: "Жасалма интеллект.",
+            detail: "<strong>AI</strong> — бул компьютердик системалардын адамга мүнөздүү болгон ойлонуу жана үйрөнүү жөндөмдөрүн туурашы. Ал жөнөкөй программалардан айырмаланып, тажрыйба топтоп, өзүн-өзү өркүндөтө алат.",
+            quiz: { q: "Кайсы технология AI тармагына кирет?", options: ["Machine Learning", "HTML", "Excel"], answer: "Machine Learning" }
+        }
+    ];
+
+    function renderCards() {
+        const query = document.getElementById('searchInput').value.toLowerCase();
+        const containers = ['lang', 'dev', 'career'];
+        
+        // Ар бир контейнерди тазалоо
+        containers.forEach(c => {
+            document.getElementById(`category-${c}`).innerHTML = "";
+            document.getElementById(`head-${c}`).style.display = "block";
+        });
+
+        const filtered = terms.filter(t => t.name.toLowerCase().includes(query));
+
+        filtered.forEach(item => {
+            const container = document.getElementById(`category-${item.cat}`);
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.onclick = () => openModal(item);
+            card.innerHTML = `
+                <img src="${item.image}" class="card-img">
+                <div class="card-content">
+                    <h3>${item.name}</h3>
+                    <p>${item.desc}</p>
+                    <small style="color:var(--accent)">Толугу менен →</small>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+
+        // Эгер категорияда маалымат жок болсо, анын башын жашыруу
+        containers.forEach(c => {
+            if (document.getElementById(`category-${c}`).childNodes.length === 0) {
+                document.getElementById(`head-${c}`).style.display = "none";
+            }
+        });
+    }
+
+    function openModal(item) {
+        document.getElementById('modalImg').src = item.image;
+        document.getElementById('modalTitle').innerText = item.name;
+        document.getElementById('modalDesc').innerHTML = item.detail;
+        
+        // Үн чыгаруу баскычын иштетүү
+        document.getElementById('speakBtn').onclick = () => {
+            const synth = window.speechSynthesis;
+            const utter = new SpeechSynthesisUtterance(item.name);
+            utter.lang = 'en-US';
+            synth.speak(utter);
+        };
+
+        document.getElementById('quizQuestion').innerText = item.quiz.q;
+        const optionsDiv = document.getElementById('quizOptions');
+        optionsDiv.innerHTML = "";
+        document.getElementById('quizFeedback').innerText = "";
+
+        item.quiz.options.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'quiz-option';
+            btn.innerText = opt;
+            btn.onclick = () => {
+                if(opt === item.quiz.answer) {
+                    btn.classList.add('correct');
+                    document.getElementById('quizFeedback').innerText = "✅ Туура!";
+                } else {
+                    btn.classList.add('wrong');
+                    document.getElementById('quizFeedback').innerText = "❌ Ката, кайра аракет кылыңыз.";
+                }
+            };
+            optionsDiv.appendChild(btn);
+        });
+
+        document.getElementById('modal').style.display = 'flex';
+    }
+
+    function closeModal() {
+        document.getElementById('modal').style.display = 'none';
+    }
+
+    window.onload = renderCards;
+</script>
+
+</body>
+</html>
